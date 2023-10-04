@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8"/>
+	<title>RGB to Grayscale</title>
+</head>
+<body>
+
+<canvas id="src" width="512" height="512"></canvas>
+<canvas id="avg_gs" width="512" height="512"></canvas>
+<canvas id="eye_gs" width="512" height="512"></canvas>
+<canvas id="rgba" width="512" height="512"></canvas>
+<canvas id="cmyk" width="512" height="512"></canvas>
+
+<script type="text/javascript">
+
+	//vytvareni kanvasu pro vykreslovani jednotlivych barevnych kanalu
+	function createCanvas(imgData,w,h) {
+		var canvas = document.createElement("canvas");
+		canvas.width = w;
+		canvas.height = h;
+		var canvasContext = canvas.getContext("2d");
+		canvasContext.putImageData(imgData, 0, 0);
+
+		return canvas
+	}
+
+	window.onload = function() {
+
+		/* Load source image */
+		var srcCanvas = document.getElementById("src");
+		var srcContext = srcCanvas.getContext("2d");
+		var srcImg = new Image();
+		srcImg.src = "./lena.png";
+		
+
+		srcImg.onload = function () {
+			srcContext.drawImage(srcImg, 0, 0);
+
+			var imgHeight = srcImg.height;
+			var imgWidth = srcImg.width;
+
+			var srcImageData = srcContext.getImageData(0, 0, imgWidth, imgHeight);
+			var srcData = srcImageData.data;
+			//nacitani novych kanvasu
+			//prumerny grayscale
+			var avgCanvas = document.getElementById("avg_gs");
+			var avgContext = avgCanvas.getContext("2d");
+			var avgImageData = avgContext.getImageData(0, 0, imgWidth, imgHeight);
+			var avgData = avgImageData.data;
+			//grayscale s citlivosti lidskeho oka
+			var eyeCanvas = document.getElementById("eye_gs");
+			var eyeContext = eyeCanvas.getContext("2d");
+			var eyeImageData = eyeContext.getImageData(0, 0, imgWidth, imgHeight);
+			var eyeData = eyeImageData.data;
+			//RGBA
+			var rgbaCanvas = document.getElementById("rgba");
+			var rgbaContext = rgbaCanvas.getContext("2d");
+			var rgbaImageData = rgbaContext.getImageData(0, 0, imgWidth, imgHeight);
+			var rgbaData = rgbaImageData.data;
+			//CMYK
+			var cmykCanvas = document.getElementById("cmyk");
+			var cmykContext = cmykCanvas.getContext("2d");
+			var cmykImageData = cmykContext.getImageData(0, 0, imgWidth, imgHeight);
+			var cmykData = cmykImageData.data;
+
+			console.log('experiment');
+
+			var redChannel=new ImageData(imgWidth, imgHeight);
+			var greenChannel=new ImageData(imgWidth, imgHeight);
+			var blueChannel=new ImageData(imgWidth, imgHeight);
+			var alphaChannel=new ImageData(imgWidth, imgHeight);
+
+			var cyanChannel=new ImageData(imgWidth, imgHeight);
+			var magentaChannel=new ImageData(imgWidth, imgHeight);
+			var yellowChannel=new ImageData(imgWidth, imgHeight);
+			var blackChannel=new ImageData(imgWidth, imgHeight);
+			// // Go through image data
+			// for (var i = 0; i < srcData.length; i += 4) {
+			// 	var red = srcData[i];
+			// 	var green = srcData[i + 1];
+			// 	var blue = srcData[i + 2];
+			// 	var alpha = srcData[i + 3];
+
+			// 	// Do magic at this place :-)
+
+			// 	dstData[i] = 255 - red;
+			// 	dstData[i + 1] = 255 - green;
+			// 	dstData[i + 2] = 255 - blue;
+			// 	dstData[i + 3] = alpha;
+			// };
+
+			// Go through the image using x,y coordinates
+			for(var y = 0; y < imgHeight; y++) {
+				for(var x = 0; x < imgWidth; x++) {
+
+					var red = srcData[((imgWidth * y) + x) * 4];
+					var green = srcData[((imgWidth * y) + x) * 4 + 1];
+					var blue = srcData[((imgWidth * y) + x) * 4 + 2];
+					var alpha = srcData[((imgWidth * y) + x) * 4 + 3];
+					//zprumerovany grayscale
+					var avg=(red+green+blue)/3;
+					//grayscale se zastoupenim cipku v oku
+					var coneCell=(0.3*red)+(0.59*green)+(0.11*blue);
+
+					var rf=red/255;
+					var gf=green/255;
+					var bf=blue/255;
+
+					black=(1-Math.max(rf,gf,bf));
+
+					cyan=(1-rf-black)/(1-black);
+					if (cyan<0) cyan=0;
+
+					magenta=(1-gf-black)/(1-black);
+					if (magenta<0) magenta=0;
+
+					yellow=(1-bf-black)/(1-black);
+					if (yellow<0) yellow=0;
+					//console.log(c);
+					//var test = rgbToCmyk(red, green, blue);
+					// Do magic at this place :-)
+					//ukladani dat, prumerny grayscale
+					avgData[((imgWidth * y) + x) * 4]=avg;
+					avgData[((imgWidth * y) + x) * 4 + 1]=avg;
+					avgData[((imgWidth * y) + x) * 4 + 2]=avg;
+					avgData[((imgWidth * y) + x) * 4 + 3]=alpha;
+					//grayscale s ohledem na oko
+					eyeData[((imgWidth * y) + x) * 4]=coneCell;
+					eyeData[((imgWidth * y) + x) * 4 + 1]=coneCell;
+					eyeData[((imgWidth * y) + x) * 4 + 2]=coneCell;
+					eyeData[((imgWidth * y) + x) * 4 + 3]=alpha;
+					//rgba kanaly
+					redChannel.data[((imgWidth * y) + x) * 4]=red;
+					redChannel.data[((imgWidth * y) + x) * 4 + 1]=0;
+					redChannel.data[((imgWidth * y) + x) * 4 + 2]=0;
+					redChannel.data[((imgWidth * y) + x) * 4 + 3]=255;
+					
+					greenChannel.data[((imgWidth * y) + x) * 4]=0;
+					greenChannel.data[((imgWidth * y) + x) * 4 + 1]=green;
+					greenChannel.data[((imgWidth * y) + x) * 4 + 2]=0;
+					greenChannel.data[((imgWidth * y) + x) * 4 + 3]=255;
+
+					blueChannel.data[((imgWidth * y) + x) * 4]=0;
+					blueChannel.data[((imgWidth * y) + x) * 4 + 1]=0;
+					blueChannel.data[((imgWidth * y) + x) * 4 + 2]=blue;
+					blueChannel.data[((imgWidth * y) + x) * 4 + 3]=255;
+
+					alphaChannel.data[((imgWidth * y) + x) * 4]=0;
+					alphaChannel.data[((imgWidth * y) + x) * 4 + 1]=0;
+					alphaChannel.data[((imgWidth * y) + x) * 4 + 2]=0;
+					alphaChannel.data[((imgWidth * y) + x) * 4 + 3]=alpha;
+					//cmyk kanaly
+					cyanChannel.data[((imgWidth * y) + x) * 4]=0;
+					cyanChannel.data[((imgWidth * y) + x) * 4 + 1]=cyan*255;
+					cyanChannel.data[((imgWidth * y) + x) * 4 + 2]=cyan*255;
+					cyanChannel.data[((imgWidth * y) + x) * 4 + 3]=alpha;
+
+					magentaChannel.data[((imgWidth * y) + x) * 4]=magenta*255;
+					magentaChannel.data[((imgWidth * y) + x) * 4 + 1]=0;
+					magentaChannel.data[((imgWidth * y) + x) * 4 + 2]=magenta*255;
+					magentaChannel.data[((imgWidth * y) + x) * 4 + 3]=alpha;
+
+					yellowChannel.data[((imgWidth * y) + x) * 4]=yellow*255;
+					yellowChannel.data[((imgWidth * y) + x) * 4 + 1]=yellow*255;
+					yellowChannel.data[((imgWidth * y) + x) * 4 + 2]=0;
+					yellowChannel.data[((imgWidth * y) + x) * 4 + 3]=alpha;
+
+					blackChannel.data[((imgWidth * y) + x) * 4]=black*255;
+					blackChannel.data[((imgWidth * y) + x) * 4 + 1]=black*255;
+					blackChannel.data[((imgWidth * y) + x) * 4 + 2]=black*255;
+					blackChannel.data[((imgWidth * y) + x) * 4 + 3]=alpha;
+				}
+			}
+			//vykreslovani
+			avgContext.putImageData(avgImageData, 0, 0);
+			eyeContext.putImageData(eyeImageData, 0, 0);
+			//rgba
+			var redCanvas = createCanvas(redChannel, imgWidth, imgHeight);
+			var greenCanvas = createCanvas(greenChannel, imgWidth, imgHeight);
+			var blueCanvas = createCanvas(blueChannel, imgWidth, imgHeight);
+			var alphaCanvas = createCanvas(alphaChannel, imgWidth, imgHeight);
+			rgbaContext.drawImage(redCanvas, 0, 0, imgWidth/2, imgHeight/2);
+			rgbaContext.drawImage(greenCanvas, imgWidth/2, 0, imgWidth/2, imgHeight/2);
+			rgbaContext.drawImage(blueCanvas, 0, imgHeight/2, imgWidth/2, imgHeight/2);
+			rgbaContext.drawImage(alphaCanvas, imgWidth/2, imgHeight/2, imgWidth/2, imgHeight/2);
+			//cmyk
+			var cyanCanvas = createCanvas(cyanChannel, imgWidth, imgHeight);
+			var magentaCanvas = createCanvas(magentaChannel, imgWidth, imgHeight);
+			var yellowCanvas = createCanvas(yellowChannel, imgWidth, imgHeight);
+			var blackCanvas = createCanvas(blackChannel, imgWidth, imgHeight);
+			cmykContext.drawImage(cyanCanvas, 0, 0, imgWidth/2, imgHeight/2);
+			cmykContext.drawImage(magentaCanvas, imgWidth/2, 0, imgWidth/2, imgHeight/2);
+			cmykContext.drawImage(yellowCanvas, 0, imgHeight/2, imgWidth/2, imgHeight/2);
+			cmykContext.drawImage(blackCanvas, imgWidth/2, imgHeight/2, imgWidth/2, imgHeight/2);
+			console.log("test");
+			
+		}
+	}
+</script>
+
+</body>
+</html>
